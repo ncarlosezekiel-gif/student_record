@@ -64,6 +64,11 @@ class StudentRecordTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response["Content-Type"].startswith(content_type))
 
+    def test_database_health_endpoint(self):
+        response = self.client.get(reverse("health_check"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
     def test_login_and_logout_are_audited(self):
         self.assertTrue(self.client.login(username="registrar", password="test-password-123"))
         self.client.post(reverse("logout"))
