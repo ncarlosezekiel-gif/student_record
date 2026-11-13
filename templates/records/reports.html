@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">REPORTING</p><h1>Reports</h1><p class="text-secondary mb-0">Download current records as PDF, Excel, or CSV.</p></div></div>
+<div class="row g-3">
+<div class="col-md-6"><div class="panel"><h2>Student master list</h2><p class="text-secondary">Student IDs, names, gender, birth date, contact email, and status.</p>{% include "records/report_actions.html" with report="students" %}</div></div>
+<div class="col-md-6"><div class="panel"><h2>Enrollment report</h2><p class="text-secondary">Student enrollments grouped by academic year and semester.</p>{% include "records/report_actions.html" with report="enrollments" %}</div></div>
+<div class="col-md-6"><div class="panel"><h2>Grade report</h2><p class="text-secondary">Recorded course and subject grades.</p>{% include "records/report_actions.html" with report="grades" %}</div></div>
+<div class="col-md-6"><div class="panel"><h2>Attendance report</h2><p class="text-secondary">Daily student attendance by class and status.</p>{% include "records/report_actions.html" with report="attendance" %}</div></div>
+</div>
+{% endblock %}

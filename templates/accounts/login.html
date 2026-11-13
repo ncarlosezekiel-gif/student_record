@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block auth_content %}
+<main class="login-page"><section class="login-card"><div class="brand login-brand"><span class="brand-mark">S</span><span>STUDENT<br><small>RECORDS SYSTEM</small></span></div><h1>Welcome back</h1><p class="text-secondary">Sign in to your school records workspace.</p>
+{% if form.errors %}<div class="alert alert-danger">Username or password is incorrect. Please try again.</div>{% endif %}
+<form method="post">{% csrf_token %}<div class="mb-3"><label class="form-label" for="id_username">Username</label><input class="form-control" id="id_username" name="username" autocomplete="username" required autofocus></div><div class="mb-4"><label class="form-label" for="id_password">Password</label><input class="form-control" type="password" id="id_password" name="password" autocomplete="current-password" required></div><button class="btn btn-primary w-100">Sign in</button></form>
+</section></main>
+{% endblock %}

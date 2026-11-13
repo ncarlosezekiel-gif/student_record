@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">RECORDS</p><h1>Students</h1><p class="text-secondary mb-0">Search and manage student profiles.</p></div><div class="d-flex gap-2"><a class="btn btn-outline-secondary" href="{% url 'student_export' %}?format=xlsx">Export Excel</a><a class="btn btn-primary" href="{% url 'student_create' %}">＋ Add student</a></div></div>
+<div class="panel"><form class="row g-2 mb-3"><div class="col-md-6"><input class="form-control" name="q" value="{{ query }}" placeholder="Search name, email or student ID"></div><div class="col-md-3"><select class="form-select" name="status"><option value="">All statuses</option>{% for value,label in students.model.Status.choices %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div><div class="col-auto"><button class="btn btn-outline-primary">Filter</button></div></form>
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Student ID</th><th>Name</th><th>Gender</th><th>Age</th><th>Email</th><th>Status</th><th></th></tr></thead><tbody>
+{% for student in students %}<tr><td class="text-primary fw-semibold">{{ student.student_id }}</td><td><a class="student-name" href="{% url 'student_detail' student.pk %}">{{ student.full_name }}</a></td><td>{{ student.get_gender_display }}</td><td>{{ student.age }}</td><td>{{ student.email|default:"—" }}</td><td><span class="status-badge">{{ student.get_status_display }}</span></td><td><a class="btn btn-sm btn-light" href="{% url 'student_update' student.pk %}">Edit</a></td></tr>{% empty %}<tr><td colspan="7" class="empty-state">No student records found.</td></tr>{% endfor %}
+</tbody></table></div><div class="text-secondary small">{{ students|length }} record{{ students|length|pluralize }}</div></div>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">OVERVIEW</p><h1>Dashboard</h1><p class="text-secondary mb-0">Welcome to your student records workspace.</p></div>{% if user.role == "ADMIN" or user.role == "REGISTRAR" %}<a class="btn btn-primary" href="{% url 'student_create' %}">＋ Register student</a>{% endif %}</div>
+<div class="row g-3 mb-4">
+{% for label,value in stats.items %}<div class="col-6 col-xl"><div class="stat-card"><span class="stat-label">{{ label|title }}</span><div class="stat-value">{{ value }}</div></div></div>{% endfor %}
+</div>
+<div class="row g-3"><div class="col-lg-8"><div class="panel"><div class="panel-heading"><h2>Recent activity</h2><span class="text-secondary small">Latest system updates</span></div>
+{% for item in activities %}<div class="activity-row"><span class="activity-dot"></span><div><strong>{{ item.get_action_display|default:item.action|title }}</strong><div class="text-secondary small">{{ item.description }} · {{ item.created_at|date:"M j, Y H:i" }}</div></div></div>{% empty %}<p class="text-secondary mb-0">No activity recorded yet.</p>{% endfor %}
+</div></div><div class="col-lg-4"><div class="panel"><div class="panel-heading"><h2>Quick links</h2></div><div class="quick-links"><a href="{% url 'student_list' %}">Browse student records <span>→</span></a>{% if user.role == "ADMIN" or user.role == "REGISTRAR" %}<a href="{% url 'enrollment_list' %}">Manage enrollments <span>→</span></a>{% endif %}<a href="{% url 'grade_list' %}">View gradebook <span>→</span></a><a href="{% url 'attendance_list' %}">Review attendance <span>→</span></a><a href="{% url 'report_center' %}">Generate reports <span>→</span></a></div></div></div></div>
+{% endblock %}
