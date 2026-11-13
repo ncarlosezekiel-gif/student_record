@@ -2,6 +2,7 @@ import csv
 from io import BytesIO
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import FileResponse, Http404, HttpResponse
@@ -11,10 +12,179 @@ from django.views.decorators.http import require_http_methods
 
 from accounts.decorators import roles_required
 from accounts.models import User
-from academics.models import Enrollment, Grade
+from academics.models import (
+    AcademicYear,
+    ClassAssignment,
+    Course,
+    Enrollment,
+    Grade,
+    Section,
+    Semester,
+    Subject,
+)
 from attendance.models import Attendance
 from .forms import GuardianFormSet, StudentForm
 from .models import AuditLog, Student, StudentDocument
+
+
+MANAGEMENT_LISTS = {
+    "users": {
+        "title": "User accounts",
+        "roles": (User.Role.ADMIN,),
+        "model": "accounts_user",
+        "columns": ("Username", "Name", "Email", "Role", "Status"),
+    },
+    "academic-years": {
+        "title": "Academic years",
+        "roles": (User.Role.ADMIN,),
+        "model": "academics_academicyear",
+        "columns": ("Year", "Start date", "End date", "Current"),
+    },
+    "semesters": {
+        "title": "Semesters",
+        "roles": (User.Role.ADMIN,),
+        "model": "academics_semester",
+        "columns": ("Semester", "Academic year", "Start date", "End date"),
+    },
+    "courses": {
+        "title": "Courses",
+        "roles": (User.Role.ADMIN,),
+        "model": "academics_course",
+        "columns": ("Code", "Course", "Status"),
+    },
+    "subjects": {
+        "title": "Subjects",
+        "roles": (User.Role.ADMIN,),
+        "model": "academics_subject",
+        "columns": ("Code", "Subject", "Course", "Units"),
+    },
+    "sections": {
+        "title": "Sections",
+        "roles": (User.Role.ADMIN,),
+        "model": "academics_section",
+        "columns": ("Section", "Course", "Academic year"),
+    },
+    "assignments": {
+        "title": "Class assignments",
+        "roles": (User.Role.ADMIN,),
+        "model": "academics_classassignment",
+        "columns": ("Section", "Subject", "Teacher"),
+    },
+    "documents": {
+        "title": "Student documents",
+        "roles": (User.Role.ADMIN, User.Role.REGISTRAR),
+        "model": "records_studentdocument",
+        "columns": ("Student", "Document", "Uploaded", "Uploaded by"),
+    },
+    "audit-logs": {
+        "title": "Audit trail",
+        "roles": (User.Role.ADMIN,),
+        "model": "records_auditlog",
+        "columns": ("Time", "User", "Action", "Details", "IP address"),
+    },
+}
+
+
+def _management_rows(section):
+    if section == "users":
+        rows = User.objects.order_by("username")
+        return [
+            (row.pk, [row.username, row.get_full_name() or "—", row.email or "—", row.get_role_display(), "Active" if row.is_active else "Inactive"])
+            for row in rows
+        ]
+    if section == "academic-years":
+        return [
+            (row.pk, [row.name, row.start_date, row.end_date, "Yes" if row.is_current else "No"])
+            for row in AcademicYear.objects.order_by("-start_date")
+        ]
+    if section == "semesters":
+        rows = Semester.objects.select_related("academic_year")
+        return [
+            (row.pk, [row.name, row.academic_year.name, row.start_date, row.end_date])
+            for row in rows
+        ]
+    if section == "courses":
+        return [
+            (row.pk, [row.code, row.name, "Active" if row.is_active else "Inactive"])
+            for row in Course.objects.order_by("code")
+        ]
+    if section == "subjects":
+        rows = Subject.objects.select_related("course")
+        return [
+            (row.pk, [row.code, row.name, row.course.name if row.course else "—", row.units])
+            for row in rows
+        ]
+    if section == "sections":
+        rows = Section.objects.select_related("course", "academic_year")
+        return [
+            (row.pk, [f"{row.year_level} · {row.name}", row.course.name, row.academic_year.name])
+            for row in rows
+        ]
+    if section == "assignments":
+        rows = ClassAssignment.objects.select_related("section", "subject", "teacher")
+        return [
+            (row.pk, [str(row.section), str(row.subject), row.teacher.get_full_name() or row.teacher.username])
+            for row in rows
+        ]
+    if section == "documents":
+        rows = StudentDocument.objects.select_related("student", "uploaded_by")
+        return [
+            (
+                row.pk,
+                [
+                    f"{row.student.full_name} ({row.student.student_id})",
+                    row.title,
+                    row.uploaded_at,
+                    row.uploaded_by.get_full_name() or row.uploaded_by.username if row.uploaded_by else "—",
+                ],
+            )
+            for row in rows
+        ]
+    rows = AuditLog.objects.select_related("actor")
+    return [
+        (
+            row.pk,
+            [
+                row.created_at,
+                row.actor.get_full_name() or row.actor.username if row.actor else "System",
+                row.action.replace("_", " ").title(),
+                row.description,
+                row.ip_address or "—",
+            ],
+        )
+        for row in rows
+    ]
+
+
+@login_required
+def management_list(request, section):
+    config = MANAGEMENT_LISTS.get(section)
+    if not config:
+        raise Http404
+    if not request.user.is_superuser and request.user.role not in config["roles"]:
+        raise PermissionDenied
+
+    is_admin = request.user.is_superuser or request.user.role == User.Role.ADMIN
+    admin_model = config["model"]
+    rows = [
+        {
+            "values": values,
+            "edit_url": reverse(f"admin:{admin_model}_change", args=[pk]) if is_admin else "",
+            "download_url": reverse("student_document_download", args=[pk]) if section == "documents" else "",
+        }
+        for pk, values in _management_rows(section)
+    ]
+    return render(
+        request,
+        "records/management_list.html",
+        {
+            "title": config["title"],
+            "columns": config["columns"],
+            "rows": rows,
+            "add_url": reverse(f"admin:{admin_model}_add") if is_admin else "",
+            "admin_list_url": reverse(f"admin:{admin_model}_changelist") if is_admin else "",
+        },
+    )
 
 
 def dashboard(request):

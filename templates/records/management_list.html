@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><p class="eyebrow">SYSTEM MANAGEMENT</p><h1>{{ title }}</h1><p class="text-secondary mb-0">Browse and manage saved records.</p></div>
+  {% if add_url %}<div class="d-flex gap-2"><a class="btn btn-primary" href="{{ add_url }}">＋ Add record</a><a class="btn btn-outline-secondary" href="{{ admin_list_url }}">Admin list</a></div>{% endif %}
+</div>
+<div class="panel">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr>{% for column in columns %}<th>{{ column }}</th>{% endfor %}<th>Actions</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>{% for value in row.values %}<td>{{ value|default_if_none:"—" }}</td>{% endfor %}
+          <td class="text-nowrap">
+            {% if row.download_url %}<a class="btn btn-sm btn-outline-primary" href="{{ row.download_url }}">Download</a>{% endif %}
+            {% if row.edit_url %}<a class="btn btn-sm btn-light" href="{{ row.edit_url }}">Edit</a>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="empty-state" colspan="{{ columns|length|add:1 }}">No {{ title|lower }} found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="text-secondary small mt-3">{{ rows|length }} record{{ rows|length|pluralize }}</div>
+</div>
+{% endblock %}

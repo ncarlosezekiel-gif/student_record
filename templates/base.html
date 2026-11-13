@@ -43,15 +43,18 @@
       {% if user.role == "ADMIN" or user.is_superuser %}
         <div class="nav-caption">SYSTEM ADMINISTRATION</div>
         <a class="nav-link" href="{% url 'admin:index' %}"><span class="nav-icon">⚙</span>Admin overview</a>
-        <a class="nav-link" href="{% url 'admin:accounts_user_changelist' %}"><span class="nav-icon">♟</span>User accounts</a>
-        <a class="nav-link" href="{% url 'admin:academics_academicyear_changelist' %}"><span class="nav-icon">▣</span>Academic years</a>
-        <a class="nav-link" href="{% url 'admin:academics_semester_changelist' %}"><span class="nav-icon">◷</span>Semesters</a>
-        <a class="nav-link" href="{% url 'admin:academics_course_changelist' %}"><span class="nav-icon">▤</span>Courses</a>
-        <a class="nav-link" href="{% url 'admin:academics_subject_changelist' %}"><span class="nav-icon">▤</span>Subjects</a>
-        <a class="nav-link" href="{% url 'admin:academics_section_changelist' %}"><span class="nav-icon">▦</span>Sections</a>
-        <a class="nav-link" href="{% url 'admin:academics_classassignment_changelist' %}"><span class="nav-icon">♙</span>Class assignments</a>
-        <a class="nav-link" href="{% url 'admin:records_studentdocument_changelist' %}"><span class="nav-icon">▧</span>Student documents</a>
-        <a class="nav-link" href="{% url 'admin:records_auditlog_changelist' %}"><span class="nav-icon">◷</span>Audit trail</a>
+        <a class="nav-link {% if request.resolver_match.kwargs.section == 'users' %}active{% endif %}" href="{% url 'management_list' 'users' %}"><span class="nav-icon">♟</span>User accounts</a>
+        <a class="nav-link {% if request.resolver_match.kwargs.section == 'academic-years' %}active{% endif %}" href="{% url 'management_list' 'academic-years' %}"><span class="nav-icon">▣</span>Academic years</a>
+        <a class="nav-link {% if request.resolver_match.kwargs.section == 'semesters' %}active{% endif %}" href="{% url 'management_list' 'semesters' %}"><span class="nav-icon">◷</span>Semesters</a>
+        <a class="nav-link {% if request.resolver_match.kwargs.section == 'courses' %}active{% endif %}" href="{% url 'management_list' 'courses' %}"><span class="nav-icon">▤</span>Courses</a>
+        <a class="nav-link {% if request.resolver_match.kwargs.section == 'subjects' %}active{% endif %}" href="{% url 'management_list' 'subjects' %}"><span class="nav-icon">▤</span>Subjects</a>
+        <a class="nav-link {% if request.resolver_match.kwargs.section == 'sections' %}active{% endif %}" href="{% url 'management_list' 'sections' %}"><span class="nav-icon">▦</span>Sections</a>
+        <a class="nav-link {% if request.resolver_match.kwargs.section == 'assignments' %}active{% endif %}" href="{% url 'management_list' 'assignments' %}"><span class="nav-icon">♙</span>Class assignments</a>
+        <a class="nav-link {% if request.resolver_match.kwargs.section == 'documents' %}active{% endif %}" href="{% url 'management_list' 'documents' %}"><span class="nav-icon">▧</span>Student documents</a>
+        <a class="nav-link {% if request.resolver_match.kwargs.section == 'audit-logs' %}active{% endif %}" href="{% url 'management_list' 'audit-logs' %}"><span class="nav-icon">◷</span>Audit trail</a>
+      {% elif user.role == "REGISTRAR" %}
+        <div class="nav-caption">RECORDS</div>
+        <a class="nav-link {% if request.resolver_match.kwargs.section == 'documents' %}active{% endif %}" href="{% url 'management_list' 'documents' %}"><span class="nav-icon">▧</span>Student documents</a>
       {% endif %}
     </nav>
     <div class="sidebar-footer"><span class="online-indicator"></span>Academic records, organized.</div>

@@ -50,6 +50,63 @@ class StudentRecordTests(TestCase):
         self.assertEqual(self.client.get(admin_users).status_code, 200)
         self.assertContains(self.client.get(reverse("dashboard")), "Audit trail")
 
+    def test_administrator_management_lists_render_and_link_to_crud(self):
+        admin_user = get_user_model().objects.create_user(
+            username="list-admin",
+            password="test-password-123",
+            role=get_user_model().Role.ADMIN,
+        )
+        self.client.force_login(admin_user)
+
+        list_routes = (
+            ("users", "User accounts"),
+            ("academic-years", "Academic years"),
+            ("semesters", "Semesters"),
+            ("courses", "Courses"),
+            ("subjects", "Subjects"),
+            ("sections", "Sections"),
+            ("assignments", "Class assignments"),
+            ("documents", "Student documents"),
+            ("audit-logs", "Audit trail"),
+        )
+        for slug, title in list_routes:
+            with self.subTest(section=slug):
+                response = self.client.get(reverse("management_list", args=[slug]))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, title)
+                self.assertContains(response, "Add record")
+                self.assertContains(response, "Admin list")
+                self.assertEqual(self.client.get(response.context["add_url"]).status_code, 200)
+
+        self.assertEqual(
+            self.client.get(reverse("management_list", args=["unknown"])).status_code,
+            404,
+        )
+
+    def test_registrar_can_list_and_download_documents_but_not_admin_lists(self):
+        document = self.student.documents.create(
+            title="Enrollment form",
+            file=SimpleUploadedFile("enrollment.txt", b"student document"),
+            uploaded_by=self.user,
+        )
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("management_list", args=["documents"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Enrollment form")
+        self.assertContains(
+            response,
+            reverse("student_document_download", args=[document.pk]),
+        )
+        self.assertNotContains(response, "Add record")
+        self.assertEqual(
+            self.client.get(reverse("management_list", args=["users"])).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.get(reverse("management_list", args=["audit-logs"])).status_code,
+            403,
+        )
+
     def test_registrar_can_search_and_open_student_records(self):
         self.client.force_login(self.user)
         response = self.client.get(reverse("student_list"), {"q": self.student.student_id})
