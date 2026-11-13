@@ -8,7 +8,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
 
-from records.models import AuditLog, Student
+from records.models import AuditLog
 from .forms import StudentAccountCreationForm
 
 class SRMSLoginView(LoginView):
@@ -26,35 +26,24 @@ def register_student_account(request):
         email = form.cleaned_data["email"].casefold()
         try:
             with transaction.atomic():
-                student = Student.objects.select_for_update().get(
-                    student_id__iexact=form.cleaned_data["student_id"],
-                    email__iexact=email,
-                    user__isnull=True,
-                )
                 user_model = get_user_model()
                 if user_model.objects.filter(Q(username__iexact=email) | Q(email__iexact=email)).exists():
-                    form.add_error(None, StudentAccountCreationForm.MATCH_ERROR)
+                    form.add_error("email", "An account with this email already exists.")
                 else:
                     user = user_model.objects.create_user(
                         username=email,
                         email=email,
-                        first_name=student.first_name,
-                        last_name=student.last_name,
                         password=form.cleaned_data["password1"],
                         role=user_model.Role.STUDENT,
                     )
-                    student.user = user
-                    student.save(update_fields=["user", "updated_at"])
                     AuditLog.objects.create(
                         actor=user,
                         action="ACCOUNT_CREATED",
-                        description=f"Student portal account created for {student.student_id}",
+                        description="Student portal account created; profile link pending",
                         ip_address=request.META.get("REMOTE_ADDR"),
                     )
-        except Student.DoesNotExist:
-            form.add_error(None, StudentAccountCreationForm.MATCH_ERROR)
         except IntegrityError:
-            form.add_error(None, StudentAccountCreationForm.MATCH_ERROR)
+            form.add_error("email", "An account with this email already exists.")
         else:
             if not form.errors:
                 messages.success(request, "Your account is ready. Sign in with your email and password.")

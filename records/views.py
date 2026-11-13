@@ -20,7 +20,7 @@ def dashboard(request):
     if not request.user.is_authenticated:
         return redirect("login")
     if request.user.role == User.Role.STUDENT:
-        student = get_object_or_404(Student, user=request.user)
+        student = Student.objects.filter(user=request.user).first()
         return render(request, "records/student_dashboard.html", {"student": student})
     stats = {
         "students": Student.objects.exclude(status=Student.Status.ARCHIVED).count(),

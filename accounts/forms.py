@@ -4,10 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 
 
 class StudentAccountCreationForm(forms.Form):
-    MATCH_ERROR = "We couldn't verify those details. Check them with your registrar and try again."
-
-    student_id = forms.CharField(max_length=20, label="Student ID")
-    email = forms.EmailField(label="Student email address")
+    email = forms.EmailField(label="Email address")
     password1 = forms.CharField(
         label="Password",
         strip=False,
@@ -23,11 +20,7 @@ class StudentAccountCreationForm(forms.Form):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             field.widget.attrs["class"] = "form-control"
-        self.fields["student_id"].widget.attrs["autocomplete"] = "off"
         self.fields["email"].widget.attrs["autocomplete"] = "email"
-
-    def clean_student_id(self):
-        return self.cleaned_data["student_id"].strip().upper()
 
     def clean_email(self):
         return self.cleaned_data["email"].strip().casefold()

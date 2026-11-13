@@ -70,36 +70,41 @@ class StudentRecordTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
 
-    def test_student_can_create_account_with_matching_student_record(self):
+    def test_student_can_create_account_without_existing_student_record(self):
         response = self.client.post(reverse("register_student_account"), {
-            "student_id": self.student.student_id.lower(),
-            "email": "ARI.SANTOS@example.com",
+            "email": "New.Student@example.com",
             "password1": "A-strong-example-password-92!",
             "password2": "A-strong-example-password-92!",
         })
         self.assertRedirects(response, reverse("login"))
-        user = get_user_model().objects.get(email="ari.santos@example.com")
-        self.student.refresh_from_db()
+        user = get_user_model().objects.get(email="new.student@example.com")
         self.assertEqual(user.role, get_user_model().Role.STUDENT)
         self.assertTrue(user.check_password("A-strong-example-password-92!"))
-        self.assertEqual(self.student.user, user)
         self.assertTrue(self.client.login(username=user.username, password="A-strong-example-password-92!"))
+        response = self.client.get(reverse("dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Contact the registrar")
+        self.assertEqual(self.client.get(reverse("student_detail", args=[self.student.pk])).status_code, 403)
 
-    def test_account_creation_rejects_unmatched_student_details(self):
+    def test_account_creation_rejects_duplicate_email(self):
+        get_user_model().objects.create_user(
+            username="existing@example.com",
+            email="existing@example.com",
+            password="another-test-password-123",
+            role=get_user_model().Role.STUDENT,
+        )
         response = self.client.post(reverse("register_student_account"), {
-            "student_id": self.student.student_id,
-            "email": "someone-else@example.com",
+            "email": "EXISTING@example.com",
             "password1": "A-strong-example-password-92!",
             "password2": "A-strong-example-password-92!",
         })
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(get_user_model().objects.filter(role=get_user_model().Role.STUDENT).exists())
-        self.assertIsNone(self.student.user)
+        self.assertContains(response, "An account with this email already exists.")
+        self.assertEqual(get_user_model().objects.filter(role=get_user_model().Role.STUDENT).count(), 1)
 
     def test_account_creation_rejects_password_mismatch(self):
         response = self.client.post(reverse("register_student_account"), {
-            "student_id": self.student.student_id,
-            "email": self.student.email,
+            "email": "new.person@example.com",
             "password1": "A-strong-example-password-92!",
             "password2": "A-different-example-password-92!",
         })
