@@ -66,9 +66,8 @@ A Django MVT application for school student profiles, enrollments, classes, grad
 The included [render.yaml](./render.yaml) creates a free Render web service. Its `DATABASE_URL` is intentionally a required secret: create a PostgreSQL database in Render and provide that database's **internal** connection URL when prompted or set it in the web service environment. Do not commit the URL, password, or a production `.env` file.
 
 1. Push this project, including `render.yaml`, to a GitHub repository that you can access.
-2. Create a PostgreSQL database in Render if you do not already have one. Keep the web service and database in the same Render region, and copy the database's internal URL.
-3. In Render, choose **New → Blueprint**, connect the GitHub repository, provide the internal URL when prompted for `DATABASE_URL`, and deploy. The database URL must be set before the first build because the build script applies migrations.
-4. The build script installs dependencies, collects static assets, and applies Django migrations.
+2. In Render, choose **New → Blueprint**, connect the GitHub repository, and deploy. The Blueprint provisions a PostgreSQL database and connects its URL to the web service automatically. If you already created a database, edit the `DATABASE_URL` mapping in `render.yaml` to reference that Render database's name before deploying.
+3. Keep the web service and database in the same Render region. The build script installs dependencies, collects static assets, and applies Django migrations; the database must be available during the build.
 5. In the deployed service's Shell, create an administrator with `python manage.py createsuperuser`. Visit `/admin/` to add accounts and academic reference data. Check `/health/` for the database-backed health status.
 
 The blueprint sets `DEBUG=False`, generates a `SECRET_KEY`, configures HTTPS/CSRF trusted origins, serves static files through WhiteNoise, and starts the app with Gunicorn. The web service is configured on Render's free plan; PostgreSQL plan availability and retention depend on Render's current offering. Free instance storage is ephemeral, so uploaded profile images and documents will not be durable across redeploys; configure persistent object storage before relying on uploaded files.

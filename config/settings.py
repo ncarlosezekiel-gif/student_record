@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -66,6 +67,10 @@ if os.getenv("DATABASE_URL"):
     }
 else:
     DATABASE_ENGINE = os.getenv("DB_ENGINE", "django.db.backends.postgresql")
+    if not DEBUG and DATABASE_ENGINE.endswith("postgresql"):
+        raise ImproperlyConfigured(
+            "DATABASE_URL is required when DEBUG is disabled. Set it to the Render PostgreSQL connection URL."
+        )
     DATABASES = {
         "default": {
             "ENGINE": DATABASE_ENGINE,

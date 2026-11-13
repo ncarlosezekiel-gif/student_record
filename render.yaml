@@ -18,4 +18,12 @@ services:
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://*.onrender.com"
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: student-record-db
+          property: connectionString
+
+databases:
+  - name: student-record-db
+    databaseName: student_records
+    user: student_records_user
+    plan: free
