@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Create student account{% endblock %}
+{% block auth_content %}
+<main class="login-page"><section class="login-card"><div class="brand login-brand"><span class="brand-mark">S</span><span>STUDENT<br><small>RECORDS SYSTEM</small></span></div><h1>Create your account</h1><p class="text-secondary">Use the student ID and email already on file with your registrar.</p>
+{% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+<form method="post">{% csrf_token %}{% for field in form %}<div class="mb-3"><label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}</div>{% endfor %}<button class="btn btn-primary w-100 mt-2">Create account</button></form>
+<p class="text-center text-secondary mt-4 mb-0">Already registered? <a href="{% url 'login' %}">Sign in</a></p>
+</section></main>
+{% endblock %}

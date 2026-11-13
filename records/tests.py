@@ -22,6 +22,7 @@ class StudentRecordTests(TestCase):
             date_of_birth=date(2008, 1, 15),
             gender=Student.Gender.FEMALE,
             address="School Road",
+            email="ari.santos@example.com",
         )
 
     def test_student_id_is_generated_and_unique(self):
@@ -68,6 +69,42 @@ class StudentRecordTests(TestCase):
         response = self.client.get(reverse("health_check"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
+
+    def test_student_can_create_account_with_matching_student_record(self):
+        response = self.client.post(reverse("register_student_account"), {
+            "student_id": self.student.student_id.lower(),
+            "email": "ARI.SANTOS@example.com",
+            "password1": "A-strong-example-password-92!",
+            "password2": "A-strong-example-password-92!",
+        })
+        self.assertRedirects(response, reverse("login"))
+        user = get_user_model().objects.get(email="ari.santos@example.com")
+        self.student.refresh_from_db()
+        self.assertEqual(user.role, get_user_model().Role.STUDENT)
+        self.assertTrue(user.check_password("A-strong-example-password-92!"))
+        self.assertEqual(self.student.user, user)
+        self.assertTrue(self.client.login(username=user.username, password="A-strong-example-password-92!"))
+
+    def test_account_creation_rejects_unmatched_student_details(self):
+        response = self.client.post(reverse("register_student_account"), {
+            "student_id": self.student.student_id,
+            "email": "someone-else@example.com",
+            "password1": "A-strong-example-password-92!",
+            "password2": "A-strong-example-password-92!",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(get_user_model().objects.filter(role=get_user_model().Role.STUDENT).exists())
+        self.assertIsNone(self.student.user)
+
+    def test_account_creation_rejects_password_mismatch(self):
+        response = self.client.post(reverse("register_student_account"), {
+            "student_id": self.student.student_id,
+            "email": self.student.email,
+            "password1": "A-strong-example-password-92!",
+            "password2": "A-different-example-password-92!",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(get_user_model().objects.filter(role=get_user_model().Role.STUDENT).exists())
 
     def test_login_and_logout_are_audited(self):
         self.assertTrue(self.client.login(username="registrar", password="test-password-123"))

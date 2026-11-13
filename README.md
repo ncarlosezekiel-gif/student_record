@@ -81,7 +81,7 @@ The blueprint sets `DEBUG=False`, generates a `SECRET_KEY`, configures HTTPS/CSR
 - **Teacher:** class-assignment-scoped grade and attendance entry; class-linked student records.
 - **Student:** personal record view when the student profile is linked to their login.
 
-Create user accounts and set their roles in Django Admin. To enable the student portal, set the account role to **Student** and attach it to the matching student's profile using the profile's `User` field. Create academic years, semesters, courses, subjects, sections, and teacher class assignments there before processing enrollments and grades. Student IDs are generated on save; duplicate student/academic-period enrollments and duplicate class attendance are database-constrained.
+Create administrator, registrar, and teacher accounts in Django Admin and assign their roles there. Students can use **Create an account** on the sign-in page after a registrar has created their profile and entered their email address. Signup requires the matching student ID and email; it creates a student-only login linked to that profile. Create academic years, semesters, courses, subjects, sections, and teacher class assignments in Django Admin before processing enrollments and grades. Student IDs are generated on save; duplicate student/academic-period enrollments and duplicate class attendance are database-constrained.
 
 The Reports screen exports student, enrollment, grade, and attendance reports as PDF, Excel (`.xlsx`), or CSV. The Students screen also provides a one-click Excel master-list download.
 
