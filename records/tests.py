@@ -6,7 +6,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
-from academics.models import AcademicYear, Course, Enrollment, Semester
+from academics.models import AcademicYear, ClassAssignment, Course, Enrollment, Section, Semester, Subject
 from .models import AuditLog, Student
 
 
@@ -58,6 +58,95 @@ class StudentRecordTests(TestCase):
         self.assertContains(response, "Classes & sections")
         self.assertEqual(self.client.get(reverse("class_list")).status_code, 200)
         self.assertEqual(self.client.get(reverse("student_detail", args=[self.student.pk])).status_code, 200)
+        self.assertNotEqual(self.client.get("/admin/").status_code, 200)
+
+    def test_teacher_has_class_workflows_but_not_registrar_or_admin_access(self):
+        teacher = get_user_model().objects.create_user(
+            username="teacher",
+            password="test-password-123",
+            role=get_user_model().Role.TEACHER,
+        )
+        self.client.force_login(teacher)
+        for route_name in ("student_list", "class_list", "grade_list", "attendance_list", "report_center"):
+            with self.subTest(route=route_name):
+                self.assertEqual(self.client.get(reverse(route_name)).status_code, 200)
+        for route_name in ("student_create", "enrollment_list", "enrollment_create"):
+            with self.subTest(route=route_name):
+                self.assertEqual(self.client.get(reverse(route_name)).status_code, 403)
+        self.assertNotEqual(self.client.get("/admin/").status_code, 200)
+        response = self.client.get(reverse("class_list"))
+        self.assertContains(response, "My classes")
+
+    def test_teacher_sees_academic_details_but_not_private_profile_details(self):
+        teacher = get_user_model().objects.create_user(
+            username="assigned-teacher",
+            password="test-password-123",
+            role=get_user_model().Role.TEACHER,
+        )
+        self.student.address = "Private Home Address"
+        self.student.emergency_contact_name = "Private Guardian Name"
+        self.student.emergency_contact_number = "09123456789"
+        self.student.save()
+        self.student.guardians.create(
+            name="Private Guardian Name",
+            relationship="Parent",
+            contact_number="09123456789",
+        )
+        year = AcademicYear.objects.create(
+            name="2026-2027",
+            start_date=date(2026, 6, 1),
+            end_date=date(2027, 3, 31),
+        )
+        semester = Semester.objects.create(
+            academic_year=year,
+            name="First",
+            start_date=date(2026, 6, 1),
+            end_date=date(2026, 10, 31),
+        )
+        course = Course.objects.create(code="EDU", name="Education")
+        section = Section.objects.create(
+            name="A",
+            year_level="1",
+            course=course,
+            academic_year=year,
+        )
+        subject = Subject.objects.create(code="EDU101", name="Foundations", course=course)
+        ClassAssignment.objects.create(section=section, subject=subject, teacher=teacher)
+        Enrollment.objects.create(
+            student=self.student,
+            academic_year=year,
+            semester=semester,
+            course=course,
+            section=section,
+            year_level="1",
+            status=Enrollment.Status.ENROLLED,
+        )
+
+        self.client.force_login(teacher)
+        response = self.client.get(reverse("student_detail", args=[self.student.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Enrollment history")
+        self.assertNotContains(response, "Private Home Address")
+        self.assertNotContains(response, "Private Guardian Name")
+
+    def test_student_cannot_access_staff_module_routes(self):
+        student_user = get_user_model().objects.create_user(
+            username="student-access",
+            password="test-password-123",
+            role=get_user_model().Role.STUDENT,
+        )
+        self.client.force_login(student_user)
+        for route_name in (
+            "student_list",
+            "student_create",
+            "enrollment_list",
+            "class_list",
+            "grade_list",
+            "attendance_list",
+            "report_center",
+        ):
+            with self.subTest(route=route_name):
+                self.assertEqual(self.client.get(reverse(route_name)).status_code, 403)
 
     def test_report_center_and_exports(self):
         self.client.force_login(self.user)
