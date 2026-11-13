@@ -13,17 +13,41 @@
   <aside class="sidebar">
     <a class="brand" href="{% url 'dashboard' %}"><span class="brand-mark">S</span><span>STUDENT<br><small>RECORDS SYSTEM</small></span></a>
     <div class="nav-caption">WORKSPACE</div>
-    <a class="nav-link" href="{% url 'dashboard' %}">▦ &nbsp; Dashboard</a>
-    {% if user.role != "STUDENT" %}
-      <a class="nav-link" href="{% url 'student_list' %}">♙ &nbsp; Students</a>
+    <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">▦ &nbsp; Dashboard</a>
+    {% if user.role == "STUDENT" %}
+      <div class="nav-caption">MY RECORDS</div>
+      <a class="nav-link" href="{% url 'student_portal_section' 'profile' %}">♙ &nbsp; My profile</a>
+      <a class="nav-link" href="{% url 'student_portal_section' 'enrollments' %}">▣ &nbsp; My enrollments</a>
+      <a class="nav-link" href="{% url 'student_portal_section' 'grades' %}">▤ &nbsp; My grades</a>
+      <a class="nav-link" href="{% url 'student_portal_section' 'attendance' %}">◷ &nbsp; My attendance</a>
+      <a class="nav-link" href="{% url 'student_portal_section' 'documents' %}">▧ &nbsp; My documents</a>
+    {% else %}
+      <div class="nav-caption">STUDENT MANAGEMENT</div>
       {% if user.role == "ADMIN" or user.role == "REGISTRAR" %}
+        <a class="nav-link" href="{% url 'student_list' %}">♙ &nbsp; Students</a>
         <a class="nav-link" href="{% url 'enrollment_list' %}">▣ &nbsp; Enrollments</a>
+      {% elif user.role == "TEACHER" %}
+        <a class="nav-link" href="{% url 'student_list' %}">♙ &nbsp; My students</a>
       {% endif %}
+      <a class="nav-link" href="{% url 'class_list' %}">{% if user.role == "TEACHER" %}▦ &nbsp; My classes{% else %}▦ &nbsp; Classes & sections{% endif %}</a>
+      <div class="nav-caption">ACADEMICS</div>
       <a class="nav-link" href="{% url 'grade_list' %}">▤ &nbsp; Grades</a>
       <a class="nav-link" href="{% url 'attendance_list' %}">◷ &nbsp; Attendance</a>
       <a class="nav-link" href="{% url 'report_center' %}">▧ &nbsp; Reports</a>
     {% endif %}
-    {% if user.is_staff %}<a class="nav-link" href="/admin/">⚙ &nbsp; Administration</a>{% endif %}
+    {% if user.role == "ADMIN" or user.is_superuser %}
+      <div class="nav-caption">SYSTEM ADMINISTRATION</div>
+      <a class="nav-link" href="{% url 'admin:index' %}">⚙ &nbsp; Admin overview</a>
+      <a class="nav-link" href="{% url 'admin:accounts_user_changelist' %}">♟ &nbsp; User accounts</a>
+      <a class="nav-link" href="{% url 'admin:academics_academicyear_changelist' %}">▣ &nbsp; Academic years</a>
+      <a class="nav-link" href="{% url 'admin:academics_semester_changelist' %}">◷ &nbsp; Semesters</a>
+      <a class="nav-link" href="{% url 'admin:academics_course_changelist' %}">▤ &nbsp; Courses</a>
+      <a class="nav-link" href="{% url 'admin:academics_subject_changelist' %}">▤ &nbsp; Subjects</a>
+      <a class="nav-link" href="{% url 'admin:academics_section_changelist' %}">▦ &nbsp; Sections</a>
+      <a class="nav-link" href="{% url 'admin:academics_classassignment_changelist' %}">♙ &nbsp; Class assignments</a>
+      <a class="nav-link" href="{% url 'admin:records_studentdocument_changelist' %}">▧ &nbsp; Student documents</a>
+      <a class="nav-link" href="{% url 'admin:records_auditlog_changelist' %}">◷ &nbsp; Audit trail</a>
+    {% endif %}
     <div class="sidebar-footer">Academic records, organized.</div>
   </aside>
   <main class="main-area">

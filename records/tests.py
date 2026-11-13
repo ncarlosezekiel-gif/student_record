@@ -2,6 +2,7 @@ from datetime import date
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
@@ -45,12 +46,17 @@ class StudentRecordTests(TestCase):
         self.assertTrue(admin_user.is_staff)
         self.client.force_login(admin_user)
         self.assertEqual(self.client.get("/admin/").status_code, 200)
+        admin_users = reverse("admin:accounts_user_changelist")
+        self.assertEqual(self.client.get(admin_users).status_code, 200)
+        self.assertContains(self.client.get(reverse("dashboard")), "Audit trail")
 
     def test_registrar_can_search_and_open_student_records(self):
         self.client.force_login(self.user)
         response = self.client.get(reverse("student_list"), {"q": self.student.student_id})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.student.student_id)
+        self.assertContains(response, "Classes & sections")
+        self.assertEqual(self.client.get(reverse("class_list")).status_code, 200)
         self.assertEqual(self.client.get(reverse("student_detail", args=[self.student.pk])).status_code, 200)
 
     def test_report_center_and_exports(self):
@@ -85,6 +91,10 @@ class StudentRecordTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Contact the registrar")
         self.assertEqual(self.client.get(reverse("student_detail", args=[self.student.pk])).status_code, 403)
+        self.assertEqual(
+            self.client.get(reverse("student_portal_section", args=["grades"])).status_code,
+            200,
+        )
 
     def test_account_creation_rejects_duplicate_email(self):
         get_user_model().objects.create_user(
@@ -158,6 +168,42 @@ class StudentRecordTests(TestCase):
         self.assertEqual(self.client.get(reverse("student_detail", args=[self.student.pk])).status_code, 200)
         self.assertEqual(self.client.get(reverse("student_detail", args=[other.pk])).status_code, 403)
         self.assertEqual(self.client.get(reverse("student_list")).status_code, 403)
+        dashboard = self.client.get(reverse("dashboard"))
+        for label in ("My profile", "My enrollments", "My grades", "My attendance", "My documents"):
+            self.assertContains(dashboard, label)
+
+    def test_student_documents_are_only_downloadable_by_their_student(self):
+        user_model = get_user_model()
+        student_user = user_model.objects.create_user(
+            username="learner",
+            password="test-password-123",
+            role=user_model.Role.STUDENT,
+        )
+        self.student.user = student_user
+        self.student.save()
+        document = self.student.documents.create(
+            title="Enrollment form",
+            file=SimpleUploadedFile("enrollment.txt", b"private student document"),
+            uploaded_by=self.user,
+        )
+        self.client.force_login(student_user)
+        response = self.client.get(reverse("student_document_download", args=[document.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            document.file.name.rsplit("/", 1)[-1],
+            response["Content-Disposition"],
+        )
+
+        other_user = user_model.objects.create_user(
+            username="another-learner",
+            password="test-password-123",
+            role=user_model.Role.STUDENT,
+        )
+        self.client.force_login(other_user)
+        self.assertEqual(
+            self.client.get(reverse("student_document_download", args=[document.pk])).status_code,
+            403,
+        )
 
 
 class EnrollmentConstraintTests(TestCase):

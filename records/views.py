@@ -4,8 +4,9 @@ from io import BytesIO
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from accounts.decorators import roles_required
@@ -13,7 +14,7 @@ from accounts.models import User
 from academics.models import Enrollment, Grade
 from attendance.models import Attendance
 from .forms import GuardianFormSet, StudentForm
-from .models import AuditLog, Student
+from .models import AuditLog, Student, StudentDocument
 
 
 def dashboard(request):
@@ -32,6 +33,39 @@ def dashboard(request):
         "teachers": User.objects.filter(role=User.Role.TEACHER, is_active=True).count(),
     }
     return render(request, "records/dashboard.html", {"stats": stats, "activities": AuditLog.objects.select_related("actor")[:8]})
+
+
+@roles_required(User.Role.STUDENT)
+def student_portal_section(request, section):
+    section_anchors = {
+        "profile": "profile",
+        "enrollments": "enrollment-history",
+        "grades": "academic-results",
+        "attendance": "attendance-records",
+        "documents": "documents",
+    }
+    if section not in section_anchors:
+        raise Http404
+    student = Student.objects.filter(user=request.user).first()
+    if not student:
+        return render(
+            request,
+            "records/student_dashboard.html",
+            {"student": None, "requested_section": section.replace("-", " ").title()},
+        )
+    return redirect(f"{reverse('student_detail', args=[student.pk])}#{section_anchors[section]}")
+
+
+@roles_required(User.Role.ADMIN, User.Role.REGISTRAR, User.Role.STUDENT)
+def student_document_download(request, pk):
+    document = get_object_or_404(StudentDocument.objects.select_related("student"), pk=pk)
+    if request.user.role == User.Role.STUDENT and document.student.user_id != request.user.id:
+        raise PermissionDenied
+    return FileResponse(
+        document.file.open("rb"),
+        as_attachment=True,
+        filename=document.file.name.rsplit("/", 1)[-1],
+    )
 
 
 @roles_required(User.Role.ADMIN, User.Role.REGISTRAR, User.Role.TEACHER)

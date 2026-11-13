@@ -16,5 +16,15 @@ class User(AbstractUser):
         self.is_staff = self.is_superuser or self.role == self.Role.ADMIN
         super().save(*args, **kwargs)
 
+    def has_perm(self, perm, obj=None):
+        if self.is_active and self.role == self.Role.ADMIN:
+            return True
+        return super().has_perm(perm, obj)
+
+    def has_module_perms(self, app_label):
+        if self.is_active and self.role == self.Role.ADMIN:
+            return True
+        return super().has_module_perms(app_label)
+
     def __str__(self):
         return self.get_full_name() or self.username

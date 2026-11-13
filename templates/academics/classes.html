@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Classes & sections{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><p class="eyebrow">ACADEMICS</p><h1>{% if user.role == "TEACHER" %}My classes{% else %}Classes & sections{% endif %}</h1><p class="text-secondary mb-0">Sections, subjects, and assigned teachers.</p></div>
+  {% if user.role == "TEACHER" %}<a class="btn btn-outline-primary" href="{% url 'student_list' %}">View my students</a>{% endif %}
+  {% if user.role == "ADMIN" %}<a class="btn btn-primary" href="{% url 'admin:academics_section_changelist' %}">Manage sections</a>{% endif %}
+</div>
+<div class="row g-3">
+{% for section in sections %}
+  <div class="col-lg-6"><div class="panel">
+    <div class="panel-heading"><div><h2 class="mb-1">{{ section.year_level }} · {{ section.name }}</h2><span class="text-secondary small">{{ section.course }} · {{ section.academic_year }}</span></div><span class="status-badge">{{ section.enrollments.count }} students</span></div>
+    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Subject</th><th>Teacher</th></tr></thead><tbody>
+      {% for assignment in section.assignments.all %}<tr><td>{{ assignment.subject }}</td><td>{{ assignment.teacher.get_full_name|default:assignment.teacher.username }}</td></tr>{% empty %}<tr><td colspan="2" class="text-secondary">No subjects assigned.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </div></div>
+{% empty %}
+  <div class="col-12"><div class="panel empty-state">No classes or sections are available yet.</div></div>
+{% endfor %}
+</div>
+{% endblock %}

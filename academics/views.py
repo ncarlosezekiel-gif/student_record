@@ -7,12 +7,24 @@ from accounts.decorators import roles_required
 from accounts.models import User
 from records.models import AuditLog
 from .forms import EnrollmentForm, GradeForm
-from .models import Enrollment, Grade
+from .models import Enrollment, Grade, Section
 
 
 @roles_required(User.Role.ADMIN, User.Role.REGISTRAR)
 def enrollment_list(request):
     return render(request, "academics/enrollments.html", {"enrollments": Enrollment.objects.select_related("student", "academic_year", "semester", "course")})
+
+
+@roles_required(User.Role.ADMIN, User.Role.REGISTRAR, User.Role.TEACHER)
+def class_list(request):
+    sections = Section.objects.select_related("course", "academic_year").prefetch_related(
+        "assignments__subject",
+        "assignments__teacher",
+        "enrollments",
+    )
+    if request.user.role == User.Role.TEACHER:
+        sections = sections.filter(assignments__teacher=request.user).distinct()
+    return render(request, "academics/classes.html", {"sections": sections})
 
 
 @roles_required(User.Role.ADMIN, User.Role.REGISTRAR)
